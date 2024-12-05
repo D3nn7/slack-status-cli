@@ -1,0 +1,24 @@
+{
+  "name": "slack-status-cli",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Danny Schapeit",
+  "license": "ISC",
+  "description": "Slack status manager to simply set user status",
+  "dependencies": {
+    "@slack/web-api": "^7.7.0",
+    "@types/node": "^22.10.1",
+    "chalk": "^4.1.2",
+    "conf": "^13.0.1",
+    "inquirer": "^12.1.0",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  }
+}

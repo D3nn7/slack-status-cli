@@ -1,0 +1,54 @@
+{
+  "templates": [
+    {
+      "label": "🏢 Im Büro von 06:00 Uhr",
+      "text": "Im Büro von 06:00 - 14:30",
+      "emoji": ":office:"
+    },
+    {
+      "label": "🏢 Im Büro von 07:00 Uhr",
+      "text": "Im Büro von 07:00 - 15:30",
+      "emoji": ":office:"
+    },
+    {
+      "label": "🏡 Home Office",
+      "text": "Home Office",
+      "emoji": ":house:"
+    },
+    {
+      "label": "🍜 Mittagspause",
+      "text": "Mittagspause",
+      "emoji": ":bento:"
+    },
+    {
+      "label": "🤒 Krank",
+      "text": "Krank gemeldet",
+      "emoji": ":face_with_thermometer:"
+    },
+    {
+      "label": "📅 Meeting",
+      "text": "In einem Meeting",
+      "emoji": ":calendar:"
+    },
+    {
+      "label": "🎯 Fokuszeit",
+      "text": "Fokuszeit - bitte nicht stören",
+      "emoji": ":dart:"
+    },
+    {
+      "label": "🚗 Unterwegs",
+      "text": "Unterwegs",
+      "emoji": ":car:"
+    },
+    {
+      "label": "🎓 Training",
+      "text": "In einer Schulung",
+      "emoji": ":mortar_board:"
+    },
+    {
+      "label": "🏇🏼 Feierabend",
+      "text": "Feierabend",
+      "emoji": ":horse_racing:"
+    }
+  ]
+}
