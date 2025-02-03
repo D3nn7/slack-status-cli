@@ -1,24 +1,34 @@
 {
   "templates": [
     {
-      "label": "🏢 Im Büro von 06:00 Uhr",
-      "text": "Im Büro von 06:00 - 14:30",
-      "emoji": ":office:"
+      "label": "🏢 Im Büro bis 14:30 Uhr",
+      "text": "Im Büro",
+      "emoji": ":office:",
+      "untilTime": "14:30"
     },
     {
-      "label": "🏢 Im Büro von 07:00 Uhr",
-      "text": "Im Büro von 07:00 - 15:30",
-      "emoji": ":office:"
+      "label": "🏢 Im Büro bis 15:30 Uhr",
+      "text": "Im Büro",
+      "emoji": ":office:",
+      "untilTime": "15:30"
     },
     {
-      "label": "🏡 Home Office",
+      "label": "🏡 Home Office bis 14:30 Uhr",
       "text": "Home Office",
-      "emoji": ":house:"
+      "emoji": ":house:",
+      "untilTime": "14:30"
+    },
+    {
+      "label": "🏡 Home Office bis 15:30 Uhr",
+      "text": "Home Office",
+      "emoji": ":house:",
+      "untilTime": "15:30"
     },
     {
       "label": "🍜 Mittagspause",
       "text": "Mittagspause",
-      "emoji": ":bento:"
+      "emoji": ":bento:",
+      "durationInMinutes": 30
     },
     {
       "label": "🤒 Krank",
@@ -28,12 +38,14 @@
     {
       "label": "📅 Meeting",
       "text": "In einem Meeting",
-      "emoji": ":calendar:"
+      "emoji": ":calendar:",
+      "durationInMinutes": 30
     },
     {
       "label": "🎯 Fokuszeit",
-      "text": "Fokuszeit - bitte nicht stören",
-      "emoji": ":dart:"
+      "text": "Fokuszeit",
+      "emoji": ":dart:",
+      "durationInMinutes": 30
     },
     {
       "label": "🚗 Unterwegs",
@@ -46,9 +58,14 @@
       "emoji": ":mortar_board:"
     },
     {
-      "label": "🏇🏼 Feierabend",
+      "label": "🏇🏼Feierabend",
       "text": "Feierabend",
       "emoji": ":horse_racing:"
+    },
+    {
+      "label": "🚽 Emergency Meeting",
+      "text": "Emergency Meeting",
+      "emoji": ":spinning-toilet:"
     }
   ]
 }

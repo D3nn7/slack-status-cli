@@ -12,6 +12,8 @@ interface StatusTemplate {
     text: string;
     emoji: string;
     label: string;
+    durationInMinutes?: number;
+    untilTime?: string;
 }
 
 interface Config {
@@ -91,12 +93,37 @@ ${chalk.green(`🟢 Aktueller Status: ${currentText} ${currentEmoji}`)}`;
     }
 }
 
-async function setSlackStatus(text: string, emoji: string) {
+async function setSlackStatus(text: string, emoji: string, durationInMinutes?: number, untilTime?: string) {
+
+    let expiration;
+
+    if (durationInMinutes != null) {
+        const currentDate = new Date();
+        const futureDate = new Date(currentDate.getTime() + durationInMinutes * 60 * 1000);
+        expiration = Math.floor(futureDate.getTime() / 1000);
+    }
+
+    if (untilTime != null) {
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (timeRegex.test(untilTime)) {
+            const [hours, minutes] = untilTime.split(':').map(Number);
+            const currentDate = new Date();
+            
+            currentDate.setHours(hours);
+            currentDate.setMinutes(minutes);
+            currentDate.setSeconds(0);
+            currentDate.setMilliseconds(0);
+            
+            expiration = Math.floor(currentDate.getTime() / 1000);
+        }
+    }
+
     try {
         await slack.users.profile.set({
             profile: {
                 status_text: text,
-                status_emoji: emoji
+                status_emoji: emoji,
+                status_expiration: expiration
             }
         });
         
@@ -263,7 +290,7 @@ async function useTemplate() {
         return showMainMenu();
     }
 
-    await setSlackStatus(template.text, template.emoji);
+    await setSlackStatus(template.text, template.emoji, template.durationInMinutes, template.untilTime);
     showMainMenu();
 }
 
