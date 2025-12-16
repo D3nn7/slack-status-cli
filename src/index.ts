@@ -14,11 +14,11 @@ interface StatusTemplate {
     label: string;
     durationInMinutes?: number;
     untilTime?: string;
-}
+};
 
 interface Config {
     slackToken: string;
-}
+};
 
 function loadConfig(): Config {
     try {

@@ -13,21 +13,33 @@
       "untilTime": "15:30"
     },
     {
+      "label": "🏢 Im Büro bis 16:30 Uhr",
+      "text": "Im Büro",
+      "emoji": ":office:",
+      "untilTime": "16:30"
+    },
+    {
       "label": "🏡 Home Office bis 14:30 Uhr",
       "text": "Home Office",
-      "emoji": ":house:",
+      "emoji": ":house_with_garden:",
       "untilTime": "14:30"
     },
     {
       "label": "🏡 Home Office bis 15:30 Uhr",
       "text": "Home Office",
-      "emoji": ":house:",
+      "emoji": ":house_with_garden:",
       "untilTime": "15:30"
     },
     {
-      "label": "🍜 Mittagspause",
+      "label": "🏡 Home Office bis 16:30 Uhr",
+      "text": "Home Office",
+      "emoji": ":house_with_garden:",
+      "untilTime": "16:30"
+    },
+    {
+      "label": "🥗 Mittagspause",
       "text": "Mittagspause",
-      "emoji": ":bento:",
+      "emoji": ":green_salad:",
       "durationInMinutes": 30
     },
     {
