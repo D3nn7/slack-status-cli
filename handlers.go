@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,15 +25,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-		w := msg.Width/2 - 4
-		h := msg.Height - 10
-		if w < 30 {
-			w = 30
-		}
-		if h < 10 {
-			h = 10
-		}
+		w, h := panelSize(msg.Width, msg.Height)
 		m.templateList.SetSize(w, h)
+		m.durationList.SetSize(w, h)
 	case statusMsg:
 		m.status = statusInfo(msg)
 		m.message = "Status refreshed"
@@ -118,6 +113,9 @@ func (m model) handleDashboardKey(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		if item == nil {
 			return m, nil, true
 		}
+		if item.UseDurationSelector {
+			return m.enterDurationSelector(*item), nil, true
+		}
 		return m, setStatusCmd(m.client, item.Text, item.Emoji, item.DurationInMinutes, item.UntilTime), true
 	case "a", "n":
 		return m.enterManualForm(), nil, true
@@ -149,6 +147,12 @@ func (m model) handleDashboardKey(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 }
 
 func (m model) handleFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.state == viewDurationSelector {
+		return m.handleDurationSelectorKey(msg)
+	}
+	if m.state == viewDurationValue {
+		return m.handleDurationValueKey(msg)
+	}
 	switch msg.String() {
 	case "esc":
 		return m.backToDashboard(), nil
@@ -201,6 +205,42 @@ func (m model) handleFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m model) handleDurationSelectorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		return m.cancelDurationSelector(), nil
+	case "enter":
+		item, ok := m.durationList.SelectedItem().(durationOption)
+		if !ok {
+			return m, nil
+		}
+		if item.Unit == durationNextMonday {
+			minutes := minutesUntilNextMonday(time.Now())
+			return m.applyDurationMinutes(minutes)
+		}
+		m.state = viewDurationValue
+		m.durationUnit = item.Unit
+		m.message = "Dauer eingeben"
+		m.inputs = buildDurationValueInput(item.Unit)
+		m.focusIndex = 0
+		return m, nil
+	}
+	var cmd tea.Cmd
+	m.durationList, cmd = m.durationList.Update(msg)
+	return m, cmd
+}
+
+func (m model) handleDurationValueKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		return m.backToDurationSelector(), nil
+	case "enter":
+		return m.submitDurationValue()
+	}
+	cmd := m.updateInputs(msg)
+	return m, cmd
+}
+
 func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 	if len(m.inputs) == 0 {
 		return nil
@@ -212,6 +252,56 @@ func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 		cmds = append(cmds, cmd)
 	}
 	return tea.Batch(cmds...)
+}
+
+func (m model) submitDurationValue() (tea.Model, tea.Cmd) {
+	if len(m.inputs) == 0 {
+		return m.withError(errors.New("duration value missing")), nil
+	}
+	value, err := parsePositiveInt(m.inputs[0].Value())
+	if err != nil {
+		return m.withError(fmt.Errorf("duration: %w", err)), nil
+	}
+	minutes := value
+	switch m.durationUnit {
+	case durationDays:
+		minutes = value * 24 * 60
+	case durationHours:
+		minutes = value * 60
+	case durationMinutes:
+		minutes = value
+	}
+	return m.applyDurationMinutes(minutes)
+}
+
+func (m model) applyDurationMinutes(minutes int) (tea.Model, tea.Cmd) {
+	if m.pendingTemplate == nil {
+		return m.withError(errors.New("no template selected")), nil
+	}
+	if minutes <= 0 {
+		return m.withError(errors.New("duration must be greater than 0")), nil
+	}
+	t := *m.pendingTemplate
+	duration := minutes
+	m.state = viewDashboard
+	m.inputs = nil
+	m.focusIndex = 0
+	m.pendingTemplate = nil
+	return m, setStatusCmd(m.client, t.Text, t.Emoji, &duration, "")
+}
+
+func minutesUntilNextMonday(now time.Time) int {
+	daysUntil := (int(time.Monday) - int(now.Weekday()) + 7) % 7
+	if daysUntil == 0 {
+		daysUntil = 7
+	}
+	target := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	target = target.AddDate(0, 0, daysUntil)
+	minutes := int(target.Sub(now).Minutes())
+	if minutes < 1 {
+		return 1
+	}
+	return minutes
 }
 
 func (m model) submitForm() (tea.Model, tea.Cmd) {

@@ -11,6 +11,8 @@ const (
 	viewCreateTemplate
 	viewDeleteConfirm
 	viewSettings
+	viewDurationSelector
+	viewDurationValue
 )
 
 const (
@@ -20,11 +22,12 @@ const (
 )
 
 type template struct {
-	Label             string `json:"label"`
-	Text              string `json:"text"`
-	Emoji             string `json:"emoji"`
-	DurationInMinutes *int   `json:"durationInMinutes,omitempty"`
-	UntilTime         string `json:"untilTime,omitempty"`
+	Label               string `json:"label"`
+	Text                string `json:"text"`
+	Emoji               string `json:"emoji"`
+	DurationInMinutes   *int   `json:"durationInMinutes,omitempty"`
+	UntilTime           string `json:"untilTime,omitempty"`
+	UseDurationSelector bool   `json:"useDurationSelector,omitempty"`
 }
 
 type templatePayload struct {
@@ -42,6 +45,15 @@ type statusInfo struct {
 	Emoji      string
 	Expiration string
 }
+
+type durationUnit int
+
+const (
+	durationDays durationUnit = iota
+	durationHours
+	durationMinutes
+	durationNextMonday
+)
 
 type statusMsg statusInfo
 type templatesMsg []template

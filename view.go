@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func (m model) View() string {
@@ -30,8 +30,19 @@ func (m model) renderBody() string {
 		return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 	}
 
+	if m.state == viewDurationSelector {
+		left := lipgloss.JoinVertical(lipgloss.Left, renderPanelTitle("Dauer"), m.durationList.View())
+		help := renderDurationHelp(m.message)
+		right := lipgloss.JoinVertical(lipgloss.Left, renderPanelTitle("Actions"), help)
+		return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+	}
+
 	if m.state == viewSettings {
 		return lipgloss.JoinVertical(lipgloss.Left, renderSettingsView(m))
+	}
+
+	if m.state == viewDurationValue {
+		return lipgloss.JoinVertical(lipgloss.Left, renderDurationValueForm(m))
 	}
 
 	form := renderForm(m.state, m.inputs)
@@ -84,6 +95,19 @@ func renderHelp(confirm bool, message string) string {
 	return lipgloss.NewStyle().Padding(1, 2).Width(40).Render(helpText + msg)
 }
 
+func renderDurationHelp(message string) string {
+	hints := []string{
+		"enter Auswahl",
+		"esc abbrechen",
+	}
+	helpText := lipgloss.NewStyle().Foreground(lipgloss.Color("#8aadf4")).Render(strings.Join(hints, " \a "))
+	msg := ""
+	if message != "" {
+		msg = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#a6da95")).Render(message)
+	}
+	return lipgloss.NewStyle().Padding(1, 2).Width(40).Render(helpText + msg)
+}
+
 func renderForm(state viewState, inputs []textinput.Model) string {
 	title := "Manual Status"
 	if state == viewEditCurrent {
@@ -99,6 +123,25 @@ func renderForm(state viewState, inputs []textinput.Model) string {
 		b.WriteString("\n\n")
 	}
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#8aadf4")).Render("Enter to submit \a Esc to cancel \a Tab to switch fields"))
+	card := lipgloss.NewStyle().
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(lipgloss.Color("#c6a0f6")).
+		Padding(1, 2).
+		Width(80).
+		Render(b.String())
+	return card
+}
+
+func renderDurationValueForm(m model) string {
+	title := fmt.Sprintf("Dauer (%s)", durationUnitLabel(m.durationUnit))
+	var b strings.Builder
+	b.WriteString(renderPanelTitle(title))
+	b.WriteString("\n\n")
+	for _, input := range m.inputs {
+		b.WriteString(input.View())
+		b.WriteString("\n\n")
+	}
+	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#8aadf4")).Render("Enter to submit \a Esc to cancel"))
 	card := lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
 		BorderForeground(lipgloss.Color("#c6a0f6")).
@@ -181,4 +224,38 @@ func newTemplateDelegate() list.DefaultDelegate {
 	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.Foreground(lipgloss.Color("#8aadf4"))
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.Foreground(lipgloss.Color("#eed49f"))
 	return delegate
+}
+
+type durationOption struct {
+	Label string
+	Unit  durationUnit
+}
+
+func (d durationOption) Title() string {
+	return d.Label
+}
+
+func (d durationOption) Description() string {
+	return ""
+}
+
+func (d durationOption) FilterValue() string {
+	return d.Label
+}
+
+func newDurationList(width, height int) list.Model {
+	items := []list.Item{
+		durationOption{Label: "Tage", Unit: durationDays},
+		durationOption{Label: "Stunden", Unit: durationHours},
+		durationOption{Label: "Minuten", Unit: durationMinutes},
+		durationOption{Label: "Bis naechste Woche Montag", Unit: durationNextMonday},
+	}
+	delegate := newTemplateDelegate()
+	ls := list.New(items, delegate, width, height)
+	ls.Title = "Dauer"
+	ls.SetShowStatusBar(false)
+	ls.SetShowHelp(false)
+	ls.DisableQuitKeybindings()
+	ls.SetFilteringEnabled(false)
+	return ls
 }

@@ -10,22 +10,25 @@ import (
 )
 
 type model struct {
-	client        *slack.Client
-	status        statusInfo
-	templates     []template
-	templateList  list.Model
-	templatesPath string
-	configPath    string
-	state         viewState
-	confirmDelete bool
-	cfg           config
-	inputs        []textinput.Model
-	focusIndex    int
-	message       string
-	err           error
-	width         int
-	height        int
-	loading       bool
+	client          *slack.Client
+	status          statusInfo
+	templates       []template
+	templateList    list.Model
+	durationList    list.Model
+	pendingTemplate *template
+	durationUnit    durationUnit
+	templatesPath   string
+	configPath      string
+	state           viewState
+	confirmDelete   bool
+	cfg             config
+	inputs          []textinput.Model
+	focusIndex      int
+	message         string
+	err             error
+	width           int
+	height          int
+	loading         bool
 }
 
 func initialModel() model {
@@ -74,6 +77,7 @@ func initialModel() model {
 		confirmDelete: effectiveConfirmDelete(cfg),
 		templates:     []template{},
 		templateList:  ls,
+		durationList:  newDurationList(42, 16),
 		templatesPath: tmplPath,
 		configPath:    cfgPath,
 		state:         viewDashboard,
@@ -111,6 +115,34 @@ func (m model) enterSettings() model {
 	return m
 }
 
+func (m model) enterDurationSelector(t template) model {
+	w, h := panelSize(m.width, m.height)
+	m.state = viewDurationSelector
+	m.pendingTemplate = &t
+	m.durationList = newDurationList(w, h)
+	m.message = "Dauer waehlen"
+	m.inputs = nil
+	m.focusIndex = 0
+	return m
+}
+
+func (m model) backToDurationSelector() model {
+	m.state = viewDurationSelector
+	m.inputs = nil
+	m.focusIndex = 0
+	m.message = "Dauer waehlen"
+	return m
+}
+
+func (m model) cancelDurationSelector() model {
+	m.state = viewDashboard
+	m.inputs = nil
+	m.focusIndex = 0
+	m.pendingTemplate = nil
+	m.message = "Auswahl abgebrochen"
+	return m
+}
+
 func (m model) backToDashboard() model {
 	m.state = viewDashboard
 	m.inputs = nil
@@ -140,4 +172,16 @@ func messageCmd(text string) tea.Cmd {
 	return func() tea.Msg {
 		return setStatusMsg(text)
 	}
+}
+
+func panelSize(width, height int) (int, int) {
+	w := width/2 - 4
+	h := height - 10
+	if w < 30 {
+		w = 30
+	}
+	if h < 10 {
+		h = 10
+	}
+	return w, h
 }
