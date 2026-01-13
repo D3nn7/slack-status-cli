@@ -1,6 +1,12 @@
 {
   "templates": [
     {
+      "label": "🏢 Im Büro bis 12:30 Uhr",
+      "text": "Im Büro",
+      "emoji": ":office:",
+      "untilTime": "12:30"
+    },
+    {
       "label": "🏢 Im Büro bis 14:30 Uhr",
       "text": "Im Büro",
       "emoji": ":office:",
@@ -44,8 +50,15 @@
     },
     {
       "label": "🤒 Krank",
-      "text": "Krank gemeldet",
-      "emoji": ":face_with_thermometer:"
+      "text": "Abwesend",
+      "emoji": ":away:",
+      "useDurationSelector": true
+    },
+    {
+      "label": "🌴 Urlaub",
+      "text": "Abwesend",
+      "emoji": ":away:",
+      "useDurationSelector": true
     },
     {
       "label": "📅 Meeting",
@@ -70,9 +83,9 @@
       "emoji": ":mortar_board:"
     },
     {
-      "label": "🏇🏼Feierabend",
+      "label": "⛔ Feierabend",
       "text": "Feierabend",
-      "emoji": ":horse_racing:"
+      "emoji": ":no_entry:"
     },
     {
       "label": "🚽 Emergency Meeting",
