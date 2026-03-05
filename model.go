@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -29,6 +30,11 @@ type model struct {
 	width           int
 	height          int
 	loading         bool
+	// Calendar sync
+	calSyncCfg     calSyncConfig
+	calSyncEnabled bool
+	calSync        calSyncState
+	calSyncCfgPath string
 }
 
 func initialModel() model {
@@ -70,19 +76,54 @@ func initialModel() model {
 	ls.DisableQuitKeybindings()
 	ls.SetFilteringEnabled(false)
 
+	// Calendar sync: load config (optional)
+	var calCfg calSyncConfig
+	var calEnabled bool
+	var calSyncCfgPath string
+	var calSync calSyncState
+
+	if p, err := resolvePath(calSyncConfigName); err == nil {
+		calSyncCfgPath = p
+		if loaded, err := loadCalSyncConfig(p); err == nil {
+			calCfg = loaded
+			calEnabled = loaded.Enabled && loaded.ICSUrl != ""
+			if loaded.Debug {
+				initCalDebugLog(loaded.DebugLogPath)
+			}
+		}
+	}
+
+	// Crash-recovery: if a state file exists from a previous run, restore active event info.
+	if calEnabled && calCfg.StatePath != "" {
+		if snap, err := loadSavedStatus(calCfg.StatePath); err == nil && snap.ActiveEventID != "" {
+			calSync.ActiveEventID = snap.ActiveEventID
+			if snap.ActiveEventEndUTC != "" {
+				if t, err := time.Parse(time.RFC3339, snap.ActiveEventEndUTC); err == nil {
+					calSync.ActiveEventEnd = t
+				}
+			}
+			calSync.StatusSaved = true
+			calSync.StatusSavedText = snap.Text
+		}
+	}
+
 	return model{
-		client:        client,
-		status:        status,
-		cfg:           cfg,
-		confirmDelete: effectiveConfirmDelete(cfg),
-		templates:     []template{},
-		templateList:  ls,
-		durationList:  newDurationList(42, 16),
-		templatesPath: tmplPath,
-		configPath:    cfgPath,
-		state:         viewDashboard,
-		message:       "Tab to switch, Enter to use, ? for help",
-		err:           loadErr,
+		client:         client,
+		status:         status,
+		cfg:            cfg,
+		confirmDelete:  effectiveConfirmDelete(cfg),
+		templates:      []template{},
+		templateList:   ls,
+		durationList:   newDurationList(42, 16),
+		templatesPath:  tmplPath,
+		configPath:     cfgPath,
+		state:          viewDashboard,
+		message:        "Tab to switch, Enter to use, ? for help",
+		err:            loadErr,
+		calSyncCfg:     calCfg,
+		calSyncEnabled: calEnabled,
+		calSyncCfgPath: calSyncCfgPath,
+		calSync:        calSync,
 	}
 }
 

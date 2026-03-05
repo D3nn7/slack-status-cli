@@ -69,3 +69,45 @@ func configPathForSave(path string) string {
 	}
 	return defaultConfigPath()
 }
+
+const calSyncConfigName = "calendar-sync.json"
+
+func loadCalSyncConfig(path string) (calSyncConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return calSyncConfig{}, err
+	}
+	var cfg calSyncConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return calSyncConfig{}, err
+	}
+	// Apply defaults
+	if cfg.PollingIntervalSeconds < 30 {
+		cfg.PollingIntervalSeconds = 60
+	}
+	if cfg.DefaultEmoji == "" {
+		cfg.DefaultEmoji = ":calendar:"
+	}
+	if cfg.DefaultText == "" {
+		cfg.DefaultText = "In einem Meeting"
+	}
+	if cfg.StatePath == "" {
+		cfg.StatePath = "calendar-sync-state.json"
+	}
+	if cfg.DebugLogPath == "" {
+		cfg.DebugLogPath = "calendar-sync-debug.log"
+	}
+	return cfg, nil
+}
+
+func loadSavedStatus(path string) (savedStatus, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return savedStatus{}, err
+	}
+	var s savedStatus
+	if err := json.Unmarshal(data, &s); err != nil {
+		return savedStatus{}, err
+	}
+	return s, nil
+}

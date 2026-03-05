@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "icsUrl": "https://outlook.office365.com/owa/calendar/TOKEN/calendar.ics",
+  "defaultEmoji": ":calendar:",
+  "defaultText": "In einem Meeting",
+  "useEventTitle": true,
+  "pollingIntervalSeconds": 60,
+  "statePath": "calendar-sync-state.json"
+}

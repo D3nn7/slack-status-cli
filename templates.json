@@ -1,43 +1,19 @@
 {
   "templates": [
     {
-      "label": "🏢 Im Büro bis 12:30 Uhr",
-      "text": "Im Büro",
-      "emoji": ":office:",
-      "untilTime": "12:30"
-    },
-    {
-      "label": "🏢 Im Büro bis 14:30 Uhr",
-      "text": "Im Büro",
-      "emoji": ":office:",
-      "untilTime": "14:30"
-    },
-    {
-      "label": "🏢 Im Büro bis 15:30 Uhr",
-      "text": "Im Büro",
-      "emoji": ":office:",
-      "untilTime": "15:30"
-    },
-    {
-      "label": "🏢 Im Büro bis 16:30 Uhr",
+      "label": "🏢 Im Büro",
       "text": "Im Büro",
       "emoji": ":office:",
       "untilTime": "16:30"
     },
     {
-      "label": "🏡 Home Office bis 14:30 Uhr",
-      "text": "Home Office",
-      "emoji": ":house_with_garden:",
-      "untilTime": "14:30"
+      "label": "🏢 Im Büro (Freitag)",
+      "text": "Im Büro",
+      "emoji": ":office:",
+      "untilTime": "12:30"
     },
     {
-      "label": "🏡 Home Office bis 15:30 Uhr",
-      "text": "Home Office",
-      "emoji": ":house_with_garden:",
-      "untilTime": "15:30"
-    },
-    {
-      "label": "🏡 Home Office bis 16:30 Uhr",
+      "label": "🏡 Home Office",
       "text": "Home Office",
       "emoji": ":house_with_garden:",
       "untilTime": "16:30"

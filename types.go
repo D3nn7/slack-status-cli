@@ -1,6 +1,10 @@
 package main
 
-import "github.com/slack-go/slack"
+import (
+	"time"
+
+	"github.com/slack-go/slack"
+)
 
 type viewState int
 
@@ -13,6 +17,7 @@ const (
 	viewSettings
 	viewDurationSelector
 	viewDurationValue
+	viewCalSyncStatus
 )
 
 const (
@@ -66,4 +71,63 @@ type configUpdatedMsg struct {
 	client *slack.Client
 	msg    string
 	path   string
+}
+
+// Calendar sync config (calendar-sync.json)
+type calSyncConfig struct {
+	Enabled                bool   `json:"enabled"`
+	ICSUrl                 string `json:"icsUrl"`
+	DefaultEmoji           string `json:"defaultEmoji"`
+	DefaultText            string `json:"defaultText"`
+	UseEventTitle          bool   `json:"useEventTitle"`
+	PollingIntervalSeconds int    `json:"pollingIntervalSeconds"`
+	StatePath              string `json:"statePath"`
+	Debug                  bool   `json:"debug"`
+	DebugLogPath           string `json:"debugLogPath"`
+}
+
+type calEvent struct {
+	ID        string
+	Subject   string
+	StartTime time.Time
+	EndTime   time.Time
+	IsAllDay  bool
+}
+
+type savedStatus struct {
+	Text              string `json:"text"`
+	Emoji             string `json:"emoji"`
+	ExpirationUnix    int64  `json:"expirationUnix"`
+	SavedAt           int64  `json:"savedAt"`
+	ActiveEventID     string `json:"activeEventId,omitempty"`
+	ActiveEventEndUTC string `json:"activeEventEndUtc,omitempty"`
+}
+
+type calSyncState struct {
+	ActiveEventID   string
+	ActiveEventEnd  time.Time
+	LastPollAt      time.Time
+	LastPollErr     error
+	StatusSaved     bool
+	StatusSavedText string
+	pendingEvent    *calEvent
+}
+
+// Calendar sync tea.Msg types
+type calSyncTickMsg struct{}
+type calEventsMsg struct {
+	Events    []calEvent
+	FetchedAt time.Time
+}
+type calStatusSetMsg struct {
+	EventID     string
+	EventEnd    time.Time
+	StatusText  string
+	StatusEmoji string
+}
+type calStatusRestoredMsg struct{ PreviousText string }
+type calStatusSavedMsg struct{ Snapshot savedStatus }
+type calSyncErrMsg struct {
+	Err     error
+	IsFatal bool
 }

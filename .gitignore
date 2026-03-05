@@ -1,3 +1,7 @@
 config.json
 node_modules/
 dist/
+calendar-sync.json
+calendar-sync-state.json
+calendar-sync-token.json
+calendar-sync-debug.log

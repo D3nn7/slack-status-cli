@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -15,7 +16,7 @@ func (m model) View() string {
 	}
 
 	header := renderHeader()
-	statusCard := renderStatusCard(m.status, m.err)
+	statusCard := renderStatusCard(m.status, m.err, m.calSync, m.calSyncEnabled)
 	body := m.renderBody()
 	footer := renderFooter(m.status.User)
 
@@ -23,6 +24,10 @@ func (m model) View() string {
 }
 
 func (m model) renderBody() string {
+	if m.state == viewCalSyncStatus {
+		return renderCalSyncStatusView(m.calSync, m.calSyncEnabled)
+	}
+
 	if m.state == viewDashboard || m.state == viewDeleteConfirm {
 		left := lipgloss.JoinVertical(lipgloss.Left, renderPanelTitle("Templates"), m.templateList.View())
 		help := renderHelp(m.state == viewDeleteConfirm, m.message)
@@ -55,17 +60,24 @@ func renderHeader() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, title, sub)
 }
 
-func renderStatusCard(info statusInfo, err error) string {
-	content := fmt.Sprintf("User: %s\nStatus: %s %s\nExpires: %s", missing(info.User, "unknown"), missing(info.Text, "-"), info.Emoji, missing(info.Expiration, "none"))
+func renderStatusCard(info statusInfo, err error, calSync calSyncState, calEnabled bool) string {
+	indicator := renderCalSyncIndicator(calSync, calEnabled)
+	base := fmt.Sprintf("User: %s\nStatus: %s %s\nExpires: %s\n%s",
+		missing(info.User, "unknown"),
+		missing(info.Text, "-"),
+		info.Emoji,
+		missing(info.Expiration, "none"),
+		indicator,
+	)
 	if err != nil {
-		content = fmt.Sprintf("User: %s\nStatus: %s %s\nExpires: %s\n\n%s", missing(info.User, "unknown"), missing(info.Text, "-"), info.Emoji, missing(info.Expiration, "none"), err.Error())
+		base += "\n\n" + err.Error()
 	}
 	card := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#7dc4e4")).
 		Padding(1, 2).
 		Width(80).
-		Render(content)
+		Render(base)
 	return card
 }
 
@@ -83,6 +95,7 @@ func renderHelp(confirm bool, message string) string {
 		"e edit current",
 		"c create template",
 		"s settings",
+		"C cal-sync",
 		"x delete template",
 		"r refresh",
 		"q quit",
@@ -241,6 +254,74 @@ func (d durationOption) Description() string {
 
 func (d durationOption) FilterValue() string {
 	return d.Label
+}
+
+// renderCalSyncIndicator renders a one-line status indicator for the cal-sync feature.
+func renderCalSyncIndicator(s calSyncState, enabled bool) string {
+	if !enabled {
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#6e738d")).Render("Cal-Sync: deaktiviert")
+	}
+	if s.ActiveEventID != "" {
+		until := ""
+		if !s.ActiveEventEnd.IsZero() {
+			until = " until " + s.ActiveEventEnd.Local().Format("15:04")
+		}
+		text := s.StatusSavedText
+		if text == "" {
+			text = "meeting"
+		}
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#a6da95")).Render("Cal-Sync: in meeting" + until + " (previous: " + text + ")")
+	}
+	if s.LastPollErr != nil {
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#ed8796")).Render("Cal-Sync: error — " + s.LastPollErr.Error())
+	}
+	pollInfo := ""
+	if !s.LastPollAt.IsZero() {
+		pollInfo = " (last poll " + s.LastPollAt.Local().Format("15:04:05") + ")"
+	}
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#7dc4e4")).Render("Cal-Sync: idle" + pollInfo)
+}
+
+// renderCalSyncStatusView renders the calendar sync status detail panel.
+func renderCalSyncStatusView(s calSyncState, enabled bool) string {
+	var b strings.Builder
+	b.WriteString(renderPanelTitle("Calendar Sync Status"))
+	b.WriteString("\n\n")
+
+	if !enabled {
+		b.WriteString("Cal-Sync ist deaktiviert.\ncalendar-sync.json erstellen um es zu aktivieren.\n")
+	} else {
+		b.WriteString("Status: Active\n")
+		if !s.LastPollAt.IsZero() {
+			b.WriteString(fmt.Sprintf("Last poll: %s\n", s.LastPollAt.Local().Format("15:04:05")))
+		}
+		if s.LastPollErr != nil {
+			b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#ed8796")).Render("Last error: "+s.LastPollErr.Error()) + "\n")
+		}
+		if s.ActiveEventID != "" {
+			b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#a6da95")).Render("Active meeting: yes") + "\n")
+			if !s.ActiveEventEnd.IsZero() {
+				remaining := time.Until(s.ActiveEventEnd).Round(time.Minute)
+				b.WriteString(fmt.Sprintf("  Ends at: %s (%s remaining)\n",
+					s.ActiveEventEnd.Local().Format("15:04"),
+					remaining.String()))
+			}
+		} else {
+			b.WriteString("Active meeting: none\n")
+		}
+		if s.StatusSaved {
+			b.WriteString(fmt.Sprintf("Saved status: %q\n", s.StatusSavedText))
+		}
+	}
+
+	b.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#8aadf4")).Render("Esc to go back"))
+	card := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7dc4e4")).
+		Padding(1, 2).
+		Width(80).
+		Render(b.String())
+	return card
 }
 
 func newDurationList(width, height int) list.Model {

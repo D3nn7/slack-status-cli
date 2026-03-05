@@ -18,6 +18,9 @@ func (m model) Init() tea.Cmd {
 	if m.templatesPath != "" {
 		cmds = append(cmds, loadTemplatesCmd(m.templatesPath))
 	}
+	if m.calSyncEnabled && m.client != nil {
+		cmds = append(cmds, pollCalendarCmd(m.calSyncCfg))
+	}
 	return tea.Batch(cmds...)
 }
 
@@ -72,6 +75,59 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, fetchStatusCmd(m.client)
 		}
 		return m, nil
+
+	// ── Calendar sync messages ──────────────────────────────────────────
+	case calSyncTickMsg:
+		if m.calSyncEnabled {
+			return m, pollCalendarCmd(m.calSyncCfg)
+		}
+		return m, nil
+
+	case calEventsMsg:
+		m.calSync.LastPollAt = msg.FetchedAt
+		m.calSync.LastPollErr = nil
+		return m.handleCalEvents(filterActiveEvents(msg.Events, msg.FetchedAt), msg.FetchedAt)
+
+	case calStatusSavedMsg:
+		m.calSync.StatusSaved = true
+		m.calSync.StatusSavedText = msg.Snapshot.Text
+		if m.calSync.pendingEvent != nil {
+			ev := *m.calSync.pendingEvent
+			m.calSync.pendingEvent = nil
+			return m, setMeetingStatusCmd(m.client, m.calSyncCfg, ev)
+		}
+		return m, nil
+
+	case calStatusSetMsg:
+		m.calSync.ActiveEventID = msg.EventID
+		m.calSync.ActiveEventEnd = msg.EventEnd
+		interval := time.Duration(m.calSyncCfg.PollingIntervalSeconds) * time.Second
+		return m, tea.Batch(
+			fetchStatusCmd(m.client),
+			startCalSyncTickCmd(interval),
+		)
+
+	case calStatusRestoredMsg:
+		m.calSync.ActiveEventID = ""
+		m.calSync.ActiveEventEnd = time.Time{}
+		m.calSync.StatusSaved = false
+		m.calSync.StatusSavedText = ""
+		m.calSync.pendingEvent = nil
+		interval := time.Duration(m.calSyncCfg.PollingIntervalSeconds) * time.Second
+		return m, tea.Batch(
+			fetchStatusCmd(m.client),
+			startCalSyncTickCmd(interval),
+		)
+
+	case calSyncErrMsg:
+		m.calSync.LastPollErr = msg.Err
+		if msg.IsFatal {
+			m.calSyncEnabled = false
+			return m, nil
+		}
+		interval := time.Duration(m.calSyncCfg.PollingIntervalSeconds) * time.Second
+		return m, startCalSyncTickCmd(interval)
+
 	case tea.KeyMsg:
 		if m.state == viewDashboard {
 			var (
@@ -139,8 +195,14 @@ func (m model) handleDashboardKey(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		return m, nil, true
 	case "s":
 		return m.enterSettings(), nil, true
+	case "C":
+		if m.calSyncEnabled {
+			m.state = viewCalSyncStatus
+			return m, nil, true
+		}
+		return m, nil, false
 	case "?":
-		m.message = "Keys: enter use template \a a manual \a e edit current \a c create template \a x delete \a s settings \a r refresh \a q quit"
+		m.message = "Keys: enter use template \a a manual \a e edit current \a c create template \a x delete \a s settings \a C cal-sync \a r refresh \a q quit"
 		return m, nil, true
 	}
 	return m, nil, false
@@ -152,6 +214,12 @@ func (m model) handleFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	if m.state == viewDurationValue {
 		return m.handleDurationValueKey(msg)
+	}
+	if m.state == viewCalSyncStatus {
+		if msg.String() == "esc" {
+			return m.backToDashboard(), nil
+		}
+		return m, nil
 	}
 	switch msg.String() {
 	case "esc":
@@ -354,4 +422,32 @@ func (m model) submitSettingsForm() (tea.Model, tea.Cmd) {
 	}
 	m.state = viewDashboard
 	return m, saveConfigCmd(m.configPath, token, m.confirmDelete)
+}
+
+// handleCalEvents is the calendar sync state machine. It is called after every poll.
+func (m model) handleCalEvents(nowEvents []calEvent, now time.Time) (tea.Model, tea.Cmd) {
+	interval := time.Duration(m.calSyncCfg.PollingIntervalSeconds) * time.Second
+
+	if m.calSync.ActiveEventID == "" {
+		// CASE A: Kein aktives Meeting verfolgt.
+		if len(nowEvents) == 0 {
+			logCal("State A: kein laufendes Meeting → nächster Poll in %s", interval)
+			return m, startCalSyncTickCmd(interval)
+		}
+		ev := earliestStartEvent(nowEvents)
+		logCal("State A→Meeting: frühestes Event %q (%s) → Status sichern", ev.Subject, ev.StartTime.Local().Format("15:04"))
+		m.calSync.pendingEvent = &ev
+		return m, saveCurrentStatusCmd(m.client, m.calSyncCfg.StatePath)
+	}
+
+	// CASE B: Wir verfolgen gerade ein aktives Meeting.
+	for _, ev := range nowEvents {
+		if ev.ID == m.calSync.ActiveEventID {
+			logCal("State B1: Meeting %q läuft noch → warten", m.calSync.ActiveEventID[:min(8, len(m.calSync.ActiveEventID))])
+			return m, startCalSyncTickCmd(interval)
+		}
+	}
+
+	logCal("State B2: Meeting %q beendet → Status wiederherstellen", m.calSync.ActiveEventID[:min(8, len(m.calSync.ActiveEventID))])
+	return m, restorePreviousStatusCmd(m.client, m.calSyncCfg.StatePath)
 }
