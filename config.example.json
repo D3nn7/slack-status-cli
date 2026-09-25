@@ -1,3 +1,14 @@
 {
-    "slackToken": "xoxp-dein-slack-token"
+  "slackToken": "xoxp-dein-slack-token",
+  "confirmDelete": true,
+  "calendar": {
+    "enabled": false,
+    "icsUrl": "https://outlook.office365.com/owa/calendar/TOKEN/calendar.ics",
+    "defaultEmoji": ":calendar:",
+    "defaultText": "In a meeting",
+    "useEventTitle": true,
+    "meetingOnly": true,
+    "keywords": ["kickoff", "retro"],
+    "pollingIntervalSeconds": 60
+  }
 }

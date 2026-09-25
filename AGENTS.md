@@ -1,31 +1,58 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- CLI entrypoint lives in `src/index.ts`; all prompts, Slack API calls, and template management are centralized here.
-- Runtime configuration is read from `config.json` (copy `config.example.json` as a starting point); status templates are stored in `templates.json` under the top-level array key `templates`.
-- No test directory exists yet; add new utilities under `src/` and keep user-facing templates/config in the repository root for easy editing by non-developers.
+## Project Overview
+Terminal UI (Go + Bubble Tea) for managing a Slack custom status: templates,
+scheduling, recurrence, emoji picker, calendar view and calendar-driven
+meeting overrides.
 
-## Build, Test, and Development Commands
-- `npm install` — install dependencies (TypeScript, ts-node, Slack SDK, Inquirer, Chalk, Conf).
-- `npm start` — run the CLI via `ts-node` (requires a valid `config.json` with `slackToken`).
-- `npm test` — currently a placeholder; replace with real test runner when tests are added.
+## Structure
+- `main.go` — thin entrypoint (flag parsing, wiring, `tea.NewProgram`).
+- `internal/domain` — pure core types: `Status`, `Template`, `Schedule`,
+  `Recurrence`, `Event`, `ClearMode`. No I/O.
+- `internal/config` — config document, platform-aware path resolution, atomic
+  JSON writes. Legacy `calendar-sync.json` is merged in.
+- `internal/store` — JSON repositories for templates, schedules and the
+  crash-recovery snapshot. Always use its atomic `WriteJSON`.
+- `internal/slackapi` — `Client` interface plus the `slack-go` implementation.
+  Depend on the interface so tests can use fakes.
+- `internal/calendar` — ICS fetch/parse, Windows→IANA timezone mapping,
+  meeting classification.
+- `internal/scheduler` — **pure** decision engine (`Evaluate`); keep it free of
+  I/O so it stays unit-testable.
+- `internal/emoji` — curated catalogue and search.
+- `internal/tui` — Bubble Tea model, update loop and views. Screens are
+  dispatched from `update.go`; rendering helpers live in the matching `*.go`.
 
-## Coding Style & Naming Conventions
-- Language: TypeScript targeting Node; keep imports ES-style.
-- Indentation: 4 spaces, semicolons enabled; prefer explicit return types on exported functions.
-- Naming: camelCase for variables/functions, PascalCase for interfaces/types, uppercase snake case for constants (e.g., `CONFIG_FILE`).
-- Error handling: fail fast with clear Chalk-colored console output; exit with non-zero status for blocking errors (missing config, missing templates).
+## Build / Test / Dev
+- `go run .` — run the TUI.
+- `go build ./...` — compile everything.
+- `go test ./...` — unit tests.
+- `make build` / `make release` — native / cross-platform binaries.
+- `make review` — `gofmt` + `go vet` + tests (run before committing).
+- `.\build.ps1` — cross-compile on Windows without `make`.
+
+## Coding Style
+- Language: Go, ES-style imports, `gofmt` formatted (tabs).
+- 4-space-equivalent indentation via gofmt; keep functions focused.
+- Naming: `camelCase` unexported, `PascalCase` exported, `UPPER_SNAKE` only for
+  true constants. German UI strings are fine; code and comments in English.
+- Error handling: return wrapped errors (`fmt.Errorf("…: %w", err)`), surface
+  them in the TUI as red footer messages. Never `panic` for user input.
+- UI text, code and comments are English; keep phrasing consistent.
 
 ## Testing Guidelines
-- No automated tests exist yet. When adding tests, place them alongside source files or in `__tests__` folders and wire `npm test` to your chosen runner (e.g., vitest/jest).
-- Mirror CLI flows with fixture configs/templates and mock Slack API responses; ensure prompts and status payloads are covered.
-- Aim for coverage on Slack profile updates (`users.profile.set`) and template CRUD helpers before merging significant changes.
+- Tests live next to the code as `*_test.go` in the same package.
+- Prioritise `internal/domain`, `internal/scheduler`, `internal/calendar`,
+  `internal/store` and `internal/config`.
+- Use `t.TempDir()` for filesystem tests; never touch the user's real config.
+- Add a fuzz/table test when parsing external formats (ICS, clock strings).
 
-## Commit & Pull Request Guidelines
-- Use concise, imperative commit subjects (e.g., `Add duration handling to status setter`); group related CLI/menu changes together.
-- Pull requests should describe user-facing behavior changes, include setup steps (e.g., sample `config.json`), and note any Slack-scoped permissions required.
-- If UI/menu text changes, include a short before/after note or screenshot of the prompt flow.
+## Commit & PR Guidelines
+- Concise imperative subjects (e.g. `Add recurring status schedules`).
+- Group related core/TUI changes together; describe user-facing behaviour.
+- Note any Slack scopes or config changes required in the PR description.
 
-## Security & Configuration Tips
-- Do not commit real Slack tokens; keep `config.json` local and consider adding `.env` support if secrets expand.
-- Validate user input for status text/emoji before calling Slack; avoid writing malformed templates by keeping them under the `templates` array with `label`, `text`, `emoji`, and optional `durationInMinutes`/`untilTime`.
+## Security & Configuration
+- Never commit real Slack tokens; `config.json`, `state.json`,
+  `schedules.json` and calendar files are gitignored.
+- Validate status text/emoji and clock strings before calling the Slack API.

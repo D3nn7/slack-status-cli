@@ -1,7 +1,20 @@
+# Local secrets and user state
 config.json
-node_modules/
-dist/
+schedules.json
+state.json
 calendar-sync.json
 calendar-sync-state.json
 calendar-sync-token.json
 calendar-sync-debug.log
+
+# Build artifacts
+bin/
+dist/
+*.exe
+*.exe~
+node_modules/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

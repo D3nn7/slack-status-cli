@@ -59,9 +59,19 @@
       "emoji": ":mortar_board:"
     },
     {
-      "label": "⛔ Feierabend",
+      "label": "🍻 Feierabend",
       "text": "Feierabend",
-      "emoji": ":no_entry:"
+      "emoji": ":beers:"
+    },
+    {
+      "label": "🔥 AWAY - SEPP erreichbar",
+      "text": "AWAY - SEPP erreichbar",
+      "emoji": ":sepp:"
+    },
+    {
+      "label": "🔥 AWAY - SEPP nicht erreichbar",
+      "text": "AWAY - SEPP nicht erreichbar",
+      "emoji": ":sepp-offline:"
     },
     {
       "label": "🚽 Emergency Meeting",
